@@ -1,3 +1,8 @@
+/*
+ * CROSBY : efficient merging tools for overlapping paired-end reads
+ *
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
