@@ -30,6 +30,11 @@
 #include "merge_kmer.h"
 #endif
 
+#ifndef MERGE_BRUTE_H
+#define MERGE_BRUTE_H
+#include "merge_brute.h"
+#endif
+
 void reverse(char*, size_t);
 void reverse_complement(char*, size_t);
 char complement(char);
@@ -163,8 +168,9 @@ int main(int argc, char **argv){
 		pair.read1_len = strlen(seq1);
 		pair.read2_len = strlen(seq2);
 		
-		merge_kmer(&pair, &param);
-		
+		//merge_kmer(&pair, &param);
+		merge_brute(&pair, &param);		
+
 	}
 	
 	fclose(fq1);
