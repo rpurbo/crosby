@@ -49,6 +49,8 @@ struct PARAMS{
         int KMER;
         char *PREFIX;
         FILE *outFile;
+	int ALIGN_MODE;
+	int Q_OFFSET;
 };
 
 struct kmer_loc{

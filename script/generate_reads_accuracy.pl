@@ -1,6 +1,6 @@
-$err = 2;
-$length = 100;
-$fragment = 180;
+$err = 0;  #percentage of error
+$length = 76;
+$fragment = 120;
 $dev = 0.2;
 $count = 1000000;
 
@@ -50,7 +50,7 @@ for($i=0;$i<$count;$i++){
 		$base = substr($frag_seq,$k,1);
 
 		$odd = int(rand(1000));
-		if($odd <= (10*$err)){
+		if($odd < (10*$err)){
 			$seq1 .= $revcomp{$base};
 		}else{
 			$seq1 .= $base;
@@ -64,7 +64,7 @@ for($i=0;$i<$count;$i++){
 		$base = $revcomp{substr($seq2_a,$k,1)};
 
                 $odd = int(rand(1000));
-                if($odd <= (10*$err)){
+                if($odd < (10*$err)){
                         $rev_seq2 .= $revcomp{$base};
                 }else{
 			$rev_seq2 .= $base;

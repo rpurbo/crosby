@@ -41,9 +41,14 @@ char complement(char);
 	
 int main(int argc, char **argv){
         struct PARAMS param;
+
+	// INITIATING DEFAULT PARAM
+
+	int runmode = 0; // RUNMODE 0 (brute force), RUNMODE 1 (kmer method)
         param.KMER = 5;
         param.ERR_RATIO = 0.25;
         param.MIN_OVERLAP = 10;
+	param.Q_OFFSET = 33;
 
 	// GETTING THE ARGUMENTS
 
@@ -52,8 +57,8 @@ int main(int argc, char **argv){
 	int c, err = 0; 
 	int mflag=0, pflag=0, fflag=0; 
 	char *sname = "default_sname", *fname; 
-	static char usage[] = "usage: %s [-x max error ratio] [-L minimum overlap] read1 read2 output_prefix\n"; 
-	while ((c = getopt(argc, argv, "k:x:L:")) != -1) 
+	static char usage[] = "usage: %s [-M] [-x max error ratio] [-L minimum overlap] read1 read2 output_prefix\n"; 
+	while ((c = getopt(argc, argv, "Mk:x:L:q:")) != -1) 
 		switch (c) { 
 			case 'k':
 				fflag = 1; 
@@ -63,10 +68,16 @@ int main(int argc, char **argv){
 				mflag = 1; 
 				param.ERR_RATIO = atof(optarg);
 				break; 
+                       case 'M':
+                                runmode = 1;
+                                break;
 			case 'L': 
 				pflag = 1; 
 				param.MIN_OVERLAP = atoi(optarg);
 				break; 
+                        case 'q':
+                                param.Q_OFFSET = atoi(optarg);
+                                break;
 			case '?': 
 				err = 1; 
 				break; 
@@ -168,8 +179,11 @@ int main(int argc, char **argv){
 		pair.read1_len = strlen(seq1);
 		pair.read2_len = strlen(seq2);
 		
-		//merge_kmer(&pair, &param);
-		merge_brute(&pair, &param);		
+		if(runmode == 1){	
+			merge_kmer(&pair, &param);
+		}else{
+			merge_brute(&pair, &param);		
+		}
 
 	}
 	
