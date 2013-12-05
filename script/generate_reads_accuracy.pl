@@ -1,8 +1,8 @@
-$err = 0;  #percentage of error
-$length = 76;
-$fragment = 120;
-$dev = 0.2;
-$count = 1000000;
+$err = $ARGV[0];  #percentage of error
+$length = $ARGV[1];
+$fragment = $ARGV[2];
+$dev = $ARGV[3];
+$count = $ARGV[4];
 
 $out = "reads_sim_acc_len" . $length . "bp_frag" . $fragment . "bp_err" . $err . "perc";
 $r1 = $out . ".R1.fastq";
