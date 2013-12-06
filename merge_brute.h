@@ -4,4 +4,4 @@
 #endif
 
 
-void merge_brute(struct read_pairs*, struct PARAMS*);
+int merge_brute(struct read_pairs*, struct PARAMS*);

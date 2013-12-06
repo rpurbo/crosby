@@ -5,7 +5,7 @@
 
 #include <math.h>
 
-void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
+int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	
 	int limit,match,mis,c,i,q1,q2;
 	float pq1,pq2,Ppq1,Ppq2,chi;
@@ -96,7 +96,6 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                 for (i=start;i<pair->read1_len;i++){
                         if(pair->read1[i] == pair->read2[i-start]){
                                 merge_str[i] = pair->read1[i];
-                                //merge_qual[i] = pair->qual1[i];
 
 				// IF BASES ARE EQUAL, CHOOSE THE LOWEST QUAL SCORE
 				q1 = pair->qual1[i] - param->Q_OFFSET;
@@ -109,10 +108,6 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 				}
 
                         }else{
-				// PLACEHOLDER METHOD
-                                //merge_str[i] = 'N';
-                                //merge_qual[i] = '#';
-				
 
 				q1 = pair->qual1[i] - param->Q_OFFSET;
 				q2 = pair->qual2[i-start] - param->Q_OFFSET;
@@ -155,7 +150,7 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                                         }
 				}
 
-				/*	
+				/* DEBUG	
 				printf("Base1: %c\n", pair->read1[i]);
 				printf("Base2: %c\n", pair->read2[i-start]);
 
@@ -190,13 +185,15 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                 merge_str[merge_len+1] = '\0';
                 merge_qual[merge_len+1] = '\0';
 
-		//printf("m:%s\n",merge_str );
-
 		// PRINT TO FILE
                 fprintf(param->outFile,"%s\n",pair->header1);
                 fprintf(param->outFile,"%s\n", merge_str);
                 fprintf(param->outFile,"+\n", merge_str);
                 fprintf(param->outFile,"%s\n", merge_qual);
 
+		return 1;
+	}else{
+	
+		return 0;
 	}
 }

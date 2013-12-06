@@ -4,4 +4,4 @@
 #endif
 
 
-void merge_kmer(struct read_pairs*, struct PARAMS*);
+int merge_kmer(struct read_pairs*, struct PARAMS*);

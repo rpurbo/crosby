@@ -49,10 +49,13 @@ struct PARAMS{
         int KMER;
         char *PREFIX;
         FILE *outFile;
+        FILE *unmerged1File;
+        FILE *unmerged2File;
 	int ALIGN_MODE;
 	int Q_OFFSET;
 	float PVAL;
 	float CHISQUARE;
+	int STAGGERMODE;
 };
 
 struct kmer_loc{

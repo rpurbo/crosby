@@ -19,7 +19,7 @@
 	- multithread?
 	- check file format fastq
 	- merging statisics collection
-	- output files for unpaired
+	- output files for unpaired (done)
 	- read and write to gzip
 	- stagger mode
 
@@ -68,22 +68,19 @@ int main(int argc, char **argv){
 	int c, err = 0; 
 	int mflag=0, pflag=0, fflag=0; 
 	char *sname = "default_sname", *fname; 
-	static char usage[] = "usage: %s [-M] [-x max error ratio] [-L minimum overlap] read1 read2 output_prefix\n"; 
-	while ((c = getopt(argc, argv, "Mk:x:L:q:")) != -1) 
+	static char usage[] = "usage: %s [-S stagger mode] [-M kmer mode] [-x max error ratio] [-L minimum overlap] read1 read2 output_prefix\n"; 
+	while ((c = getopt(argc, argv, "SMk:x:L:q:")) != -1) 
 		switch (c) { 
-			case 'k':
-				fflag = 1; 
-				//param.KMER = atoi(optarg);
+			case 'S':
+				param.STAGGERMODE = 1;
 				break; 
 			case 'x': 
-				mflag = 1; 
 				param.ERR_RATIO = atof(optarg);
 				break; 
-                       case 'M':
+                      	case 'M':
                                 runmode = 1;
                                 break;
 			case 'L': 
-				pflag = 1; 
 				param.MIN_OVERLAP = atoi(optarg);
 				break; 
                         case 'q':
@@ -119,15 +116,38 @@ int main(int argc, char **argv){
         strncpy(input2,argv[optind+1],len);	
 	input2[len] = '\0';
 	len = strlen(argv[optind+2]);
-        char output[len+1];
+
+	char prefix[] = ".composite.fastq"; 
+	char unmerged1[] = ".unmerged.1.fastq";
+	char unmerged2[] = ".unmerged.2.fastq";
+
+        char output[len+strlen(prefix)+1];
         strncpy(output,argv[optind+2],len);
-	output[len] = '\0';
+	strncat(output,prefix,strlen(prefix));
+        output[len+strlen(prefix)+1] = '\0';
+
+        char output_un1[len+strlen(unmerged1)+1];
+        strncpy(output_un1,argv[optind+2],len);
+        strncat(output_un1,unmerged1,strlen(unmerged1));
+        output_un1[len+strlen(unmerged1)+1] = '\0';
+
+        char output_un2[len+strlen(unmerged2)+1];
+        strncpy(output_un2,argv[optind+2],len);
+        strncat(output_un2,unmerged2,strlen(unmerged2));
+        output_un2[len+strlen(unmerged2)+1] = '\0';
+
 
 	// OPENING THE FILES
 
         FILE * oFile;
+	FILE * oFile_un1;
+	FILE * oFile_un2;
         oFile = fopen (output,"w");
+	oFile_un1 = fopen (output_un1,"w");
+	oFile_un2 = fopen (output_un2,"w");
 	param.outFile= oFile;
+	param.unmerged1File = oFile_un1;
+	param.unmerged2File = oFile_un2;
 	
 	FILE* fq1;
 	FILE* fq2;
@@ -137,7 +157,7 @@ int main(int argc, char **argv){
 	
 	char * line1 = NULL;
 	char * line2 = NULL;
-	size_t len1,len2 = 0;
+	size_t len1,len2,found = 0;
 	ssize_t num1,num2;
 	
 	// ITERATE THE READS	
@@ -189,19 +209,40 @@ int main(int argc, char **argv){
 		pair.header2_len = strlen(header2);
 		pair.read1_len = strlen(seq1);
 		pair.read2_len = strlen(seq2);
+	
+		found =0;
 		
 		if(runmode == 1){	
-			merge_kmer(&pair, &param);
+			found = merge_kmer(&pair, &param);
 		}else{
-			merge_brute(&pair, &param);		
+			found = merge_brute(&pair, &param);		
 		}
 
+		if(found == 0){
+			if(param.STAGGERMODE == 1){
+			
+			}
+
+			if(found == 0){
+                		fprintf(param.unmerged1File,"%s\n",pair.header1);
+                		fprintf(param.unmerged1File,"%s\n", pair.read1);
+                		fprintf(param.unmerged1File,"+\n");
+                		fprintf(param.unmerged1File,"%s\n", pair.qual1);
+
+                                fprintf(param.unmerged2File,"%s\n",pair.header2);
+                                fprintf(param.unmerged2File,"%s\n", pair.read2);
+                                fprintf(param.unmerged2File,"+\n");
+                                fprintf(param.unmerged2File,"%s\n", pair.qual2);
+
+			}
+		}
 	}
 	
 	fclose(fq1);
 	fclose(fq2);
 	fclose(oFile);
-	
+	fclose(oFile_un1);
+	fclose(oFile_un2);
 }
 
 

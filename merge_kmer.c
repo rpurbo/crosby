@@ -5,7 +5,7 @@
 
 #include <math.h>
 
-void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
+int merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
 
         int q1,q2;
         float pq1,pq2,Ppq1,Ppq2,chi;
@@ -23,7 +23,7 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
 
 
         struct kmer_loc* kmer_db[pair->read1_len];   //head of the location linked list
-        int kmer_index[4][4][4][4][4] = {0};                // use to locate the head for a 3mer
+        int kmer_index[4][4][4][4][4] = {0};                // use to locate the head for a 5mer
 
 
         for(i=0;i<4;i++){
@@ -68,7 +68,7 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
 
         }
         
-        // TSCAN READ2 and FILL MATRIX and OCC table
+        // SCAN READ2 and FILL MATRIX and OCC table
 
         bool diag_matrix[pair->read1_len][SEED];
         int diag_occ[pair->read1_len];
@@ -108,6 +108,8 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
                 }
                 //printf("\n");
         }
+
+
 
         // GET THE BEST ALIGNMENT
         int best_score = 1;
@@ -161,21 +163,9 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
 
                 // MIDDLE PART
                 for (i=startx;i<pair->read1_len;i++){
-                        /*if(pair->read1[i] == pair->read2[i-startx]){
-                                merge_str[i] = pair->read1[i];
-                                merge_qual[i] = pair->qual1[i];
-                        }else{
-                                merge_str[i] = 'N';
-                                merge_qual[i] = '#';
-                        }
-
-
-
-                }*/
 
 			if(pair->read1[i] == pair->read2[i-startx]){
                         	merge_str[i] = pair->read1[i];
-                                //merge_qual[i] = pair->qual1[i];
 
                                 // IF BASES ARE EQUAL, CHOOSE THE LOWEST QUAL SCORE
                                 q1 = pair->qual1[i] - param->Q_OFFSET;
@@ -271,8 +261,13 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
                 fprintf(param->outFile,"%s\n", merge_str);
                 fprintf(param->outFile,"+\n", merge_str);
                 fprintf(param->outFile,"%s\n", merge_qual);
+		
+		return 1;
+        }else{
 
-        }	
+		return 0;
+	}
+		
 }
 
 
