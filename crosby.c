@@ -7,14 +7,23 @@
  *
  * CROSBY is designed to provide the following advanced features:
  * 	-  K-mer based extension identification. This feature is faster than brute-force algorithm in that it will only test smaller number
- * 	   of extension point indicated by k-mer location.
+ * 	   of extension point indicated by k-mer location. (done)
  * 	-  Automatic quality trimming. CROSBY provides option to automatically trim bases in 3'-end that have quality score lower than 2.
  * 	-  Statistics test for base conflict resolution. CROSBY employs statistics test to decide which bases to retain in the case of
- * 	   mismatch between pair.
+ * 	   mismatch between pair. (done)
  * 	-  Repeat detection and resolution. CROSBY provides a method to detect short repeats in the fragment.
  * 	-  Rescue mode. CROSBY provides a method to link two reads which shared less than 10bps in their extension point. The method
  * 	   examines all possible extension within the 10bps and compares it against a dynamic k-mer database.
  *
+	TODO:
+	- multithread?
+	- check file format fastq
+	- merging statisics collection
+	- output files for unpaired
+	- read and write to gzip
+	- stagger mode
+
+
  * CROSBY source code can be downloaded from https://github.com/rpurbo/crosby
  *
  * Rikky W. Purbojati
@@ -49,6 +58,8 @@ int main(int argc, char **argv){
         param.ERR_RATIO = 0.25;
         param.MIN_OVERLAP = 10;
 	param.Q_OFFSET = 33;
+	param.PVAL = 0.05;
+	param.CHISQUARE = 3.84;
 
 	// GETTING THE ARGUMENTS
 

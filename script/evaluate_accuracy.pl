@@ -41,6 +41,7 @@ while($buff = <FILE>){
 		if($seq eq $compseq){
 			$acc++;
 		}else{
+			#print "++++++++\n";
 			#print $seq . "\n";
 			#print $compseq . "\n";
 		}

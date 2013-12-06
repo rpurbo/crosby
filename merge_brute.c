@@ -12,6 +12,10 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	int maxscore =0;
 	int start = -1;
 	int obs[4];
+	obs[0] = 0;
+	obs[1] = 0;
+	obs[2] = 0;
+	obs[3] = 0;
 
 	//printf("============================================\n");
 	//printf("r1:%s\n",pair->read1 );
@@ -39,12 +43,16 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	}
 	*/
 
+	// COUNT BASES OBSERVATION
+	for (i=0;i<pair->read1_len;i++){
+		obs[base2code[pair->read1[i]]]++;
+	}
+
 	// == NAIVE BRUTE FORCE ==
 	for(limit = 0;limit < pair->read1_len - param->MIN_OVERLAP;limit++){
 		match =0;
 		mis =0;
     		c = 0;
-		obs[base2code[pair->read1[limit]]]++;       	
 
     		for (i=0;i<pair->read2_len - limit;i++){
     
@@ -94,7 +102,7 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 				q1 = pair->qual1[i] - param->Q_OFFSET;
 				q2 = pair->qual2[i-start] - param->Q_OFFSET;
 			
-				if(q1 > q2 ){
+				if(q1 < q2 ){
 					merge_qual[i] = pair->qual2[i-start];
 				}else{
 					merge_qual[i] = pair->qual1[i];
@@ -109,21 +117,25 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 				q1 = pair->qual1[i] - param->Q_OFFSET;
 				q2 = pair->qual2[i-start] - param->Q_OFFSET;
 
-				pq1 = pow(10, (q1/-10));				
-				pq2 = pow(10,(q2/-10));	
+				pq1 = 1- (powf(10, ((float)q1/-10)));				
+				pq2 = 1- (powf(10,((float)q2/-10)));	
 				
+
+	                        float PA = ((float)obs[base2code[pair->read1[i]]]/pair->read1_len);
+                                float PC = ((float)obs[base2code[pair->read2[i-start]]]/pair->read1_len);
+
 				// POSTERIOR PROBABILITY OF BASE 1
-				Ppq1 = (pq1 * (obs[base2code[pair->read1[i]]]/pair->read1_len)) / 0.25; 						
-				Ppq1 *= (((1-pq2)/3) * (obs[base2code[pair->read1[i]]]/pair->read1_len)) / 0.25;
+				Ppq1 = (float)(pq1 * PA) / 0.25; 						
+				Ppq1 *= ((float)((1-pq2)/3) * PA) / 0.25;
 				
 				// POSTERIOR PROBABILITY OF BASE 2
-                                Ppq2 = (pq2 * (obs[base2code[pair->read2[i-start]]]/pair->read1_len)) / 0.25;
-                                Ppq2 *= (((1-pq1)/3) * (obs[base2code[pair->read2[i-start]]]/pair->read1_len)) / 0.25;
+                                Ppq2 = (float)(pq2 * PC) / 0.25;
+                                Ppq2 *= ((float)((1-pq1)/3) * PC) / 0.25;
 
 				// CALCULATE CHI-SQUARE TEST
 				if(Ppq1 > Ppq2){
 					chi = ((Ppq1 - Ppq2) * (Ppq1 - Ppq2)) / Ppq2;			
-					if(chi >= 3.84){ //p-value 0.05 
+					if(chi >= param->CHISQUARE){ //p-value 0.05 
 						// different enough
 						merge_str[i] = pair->read1[i];
 						merge_qual[i] = pair->qual1[i];
@@ -133,7 +145,7 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 					}
 				}else{
 					chi = ((Ppq2 - Ppq1) * (Ppq2 - Ppq1)) / Ppq1;
-                                       if(chi >= 3.84){ //p-value 0.05
+                                       if(chi >= param->CHISQUARE){ //p-value 0.05
                                                 // different enough
                                                 merge_str[i] = pair->read2[i-start];
                                                 merge_qual[i] = pair->qual2[i-start];
@@ -142,6 +154,30 @@ void merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                                                 merge_qual[i] = '#';
                                         }
 				}
+
+				/*	
+				printf("Base1: %c\n", pair->read1[i]);
+				printf("Base2: %c\n", pair->read2[i-start]);
+
+				
+				printf("Q1: %c - %d - %f\n", pair->qual1[i], q1, pq1);
+                                printf("Q2: %c - %d - %f\n", pair->qual2[i-start],q2,pq2);
+				
+				printf("obs1: %d\n",obs[base2code[pair->read1[i]]]);
+				printf("obs2: %d\n",obs[base2code[pair->read2[i-start]]]);
+				printf("P(A): %f\n", PA);
+				printf("P(A)2: %f\n", PC);		
+
+				printf("PPq1: %f\n", Ppq1);
+                                printf("PPq2: %f\n", Ppq2);
+
+				printf("chi square: %f\n",chi);
+	
+				printf("merge str: %c\n",merge_str[i]);
+				printf("merge qual: %c\n",merge_qual[i]);			
+				
+				printf("==============================\n");
+				*/
                         }
                 }
 

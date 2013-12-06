@@ -51,6 +51,8 @@ struct PARAMS{
         FILE *outFile;
 	int ALIGN_MODE;
 	int Q_OFFSET;
+	float PVAL;
+	float CHISQUARE;
 };
 
 struct kmer_loc{

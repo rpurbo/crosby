@@ -3,8 +3,19 @@
 #include "merge_kmer.h"
 #endif
 
+#include <math.h>
 
 void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
+
+        int q1,q2;
+        float pq1,pq2,Ppq1,Ppq2,chi;
+        int obs[4];
+        obs[0] = 0;
+        obs[1] = 0;
+        obs[2] = 0;
+        obs[3] = 0;
+
+
         // build kmer db
         int i,j,k,l,m;
         int idx =0 ;
@@ -129,6 +140,11 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
         }
 
 
+        // COUNT BASES OBSERVATION
+        for (i=0;i<pair->read1_len;i++){
+                obs[base2code[pair->read1[i]]]++;
+        }
+
         // MERGE THE READS
         if(best_score != 1){
                 int merge_len = pair->read1_len + pair->read2_len - (pair->read1_len - startx);
@@ -145,15 +161,101 @@ void merge_kmer(struct read_pairs *pair, struct PARAMS *param ){
 
                 // MIDDLE PART
                 for (i=startx;i<pair->read1_len;i++){
-                        if(pair->read1[i] == pair->read2[i-startx]){
+                        /*if(pair->read1[i] == pair->read2[i-startx]){
                                 merge_str[i] = pair->read1[i];
                                 merge_qual[i] = pair->qual1[i];
                         }else{
                                 merge_str[i] = 'N';
                                 merge_qual[i] = '#';
                         }
-                }
 
+
+
+                }*/
+
+			if(pair->read1[i] == pair->read2[i-startx]){
+                        	merge_str[i] = pair->read1[i];
+                                //merge_qual[i] = pair->qual1[i];
+
+                                // IF BASES ARE EQUAL, CHOOSE THE LOWEST QUAL SCORE
+                                q1 = pair->qual1[i] - param->Q_OFFSET;
+                                q2 = pair->qual2[i-startx] - param->Q_OFFSET;
+
+                                if(q1 < q2 ){
+                                        merge_qual[i] = pair->qual2[i-startx];
+                                }else{
+                                        merge_qual[i] = pair->qual1[i];
+                                }
+			}else{
+
+
+                                q1 = pair->qual1[i] - param->Q_OFFSET;
+                                q2 = pair->qual2[i-startx] - param->Q_OFFSET;
+
+                                pq1 = 1- (powf(10, ((float)q1/-10)));
+                                pq2 = 1- (powf(10,((float)q2/-10)));
+
+
+                                float PA = ((float)obs[base2code[pair->read1[i]]]/pair->read1_len);
+                                float PC = ((float)obs[base2code[pair->read2[i-startx]]]/pair->read1_len);
+
+                                // POSTERIOR PROBABILITY OF BASE 1
+                                Ppq1 = (float)(pq1 * PA) / 0.25;
+                                Ppq1 *= ((float)((1-pq2)/3) * PA) / 0.25;
+
+                                // POSTERIOR PROBABILITY OF BASE 2
+                                Ppq2 = (float)(pq2 * PC) / 0.25;
+                                Ppq2 *= ((float)((1-pq1)/3) * PC) / 0.25;
+
+                                // CALCULATE CHI-SQUARE TEST
+                                if(Ppq1 > Ppq2){
+                                        chi = ((Ppq1 - Ppq2) * (Ppq1 - Ppq2)) / Ppq2;
+                                        if(chi >= param->CHISQUARE){ //p-value 0.05
+                                                // different enough
+                                                merge_str[i] = pair->read1[i];
+                                                merge_qual[i] = pair->qual1[i];
+                                        }else{
+                                                merge_str[i] = 'N';
+                                                merge_qual[i] = '#';
+                                        }
+                                }else{
+                                        chi = ((Ppq2 - Ppq1) * (Ppq2 - Ppq1)) / Ppq1;
+                                       if(chi >= param->CHISQUARE){ //p-value 0.05
+                                                // different enough
+                                                merge_str[i] = pair->read2[i-startx];
+                                                merge_qual[i] = pair->qual2[i-startx];
+                                        }else{
+                                                merge_str[i] = 'N';
+                                                merge_qual[i] = '#';
+                                        }
+                                }
+                                
+				/*
+				printf("Base1: %c\n", pair->read1[i]);
+                                printf("Base2: %c\n", pair->read2[i-startx]);
+
+
+                                printf("Q1: %c - %d - %f\n", pair->qual1[i], q1, pq1);
+                                printf("Q2: %c - %d - %f\n", pair->qual2[i-startx],q2,pq2);
+
+                                printf("obs1: %d\n",obs[base2code[pair->read1[i]]]);
+                                printf("obs2: %d\n",obs[base2code[pair->read2[i-startx]]]);
+                                printf("P(A): %f\n", PA);
+                                printf("P(A)2: %f\n", PC);
+
+                                printf("PPq1: %f\n", Ppq1);
+                                printf("PPq2: %f\n", Ppq2);
+
+                                printf("chi square: %f\n",chi);
+
+                                printf("merge str: %c\n",merge_str[i]);
+                                printf("merge qual: %c\n",merge_qual[i]);
+
+                                printf("==============================\n");
+                                */	
+			}
+		}
+		
                 // LAST PART
                 for(i= pair->read1_len ;i <= merge_len;i++){
                         merge_str[i] = pair->read2[i-startx];
