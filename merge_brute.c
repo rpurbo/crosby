@@ -17,9 +17,9 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	obs[2] = 0;
 	obs[3] = 0;
 
-	//printf("============================================\n");
-	//printf("r1:%s\n",pair->read1 );
-        //printf("r2:%s\n",pair->read2 );
+	printf("============================================\n");
+	printf("r1:%s\n",pair->read1 );
+        printf("r2:%s\n",pair->read2 );
 	
 	/*
 	char *reads1_substring[pair->read1_len - param->MIN_OVERLAP];
@@ -43,10 +43,16 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	}
 	*/
 
+	printf("=== MERGE BRUTE\n");
+	printf("=COUNT OBS\n");
 	// COUNT BASES OBSERVATION
 	for (i=0;i<pair->read1_len;i++){
 		obs[base2code[pair->read1[i]]]++;
 	}
+
+	printf("=FIND ALIGNMENT\n");
+	printf("R1 len: %d\n",pair->read1_len);
+	printf("R2 len: %d\n",pair->read2_len);
 
 	// == NAIVE BRUTE FORCE ==
 	for(limit = 0;limit < pair->read1_len - param->MIN_OVERLAP;limit++){
@@ -54,16 +60,19 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 		mis =0;
     		c = 0;
 
+		printf("lim: %d\n",limit);
+
     		for (i=0;i<pair->read2_len - limit;i++){
-    
+			printf("i: %d\n",i);    
+
 			if(pair->read1[limit+i] == pair->read2[i]){
 				match++;
 			}else{
 				mis++;
 			}	
 
-        		if(mis >= (param->ERR_RATIO * (pair->read1_len - limit))){
-            			i = pair->read1_len;
+        		if(mis > (param->ERR_RATIO * (pair->read1_len - limit))){
+            			//i = pair->read1_len;
             			exit;
         		}
         
@@ -77,7 +86,7 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	}
 	// == NAIVE BRUTE FORCE ==
 
-
+	printf("=MERGE READS\n");
         // MERGE THE READS
         if(maxscore != 0){
                 int merge_len = pair->read1_len + pair->read2_len - (pair->read1_len - start);
@@ -185,6 +194,7 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                 merge_str[merge_len+1] = '\0';
                 merge_qual[merge_len+1] = '\0';
 
+		printf("=WRITE OUTPUT\n");
 		// PRINT TO FILE
                 fprintf(param->outFile,"%s\n",pair->header1);
                 fprintf(param->outFile,"%s\n", merge_str);

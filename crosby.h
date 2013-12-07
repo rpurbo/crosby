@@ -41,6 +41,14 @@ struct read_pairs {
         int read2_len;
 };
 
+struct STATS{
+	int NUM_OF_READS;
+	int FOUND_ALIGNMENT;
+	int *HISTO;
+	int *HISTO_COUNT;
+	int TOTAL_LENGTH;
+};
+
 struct PARAMS{
         int FRAGMENT_LEN;
         int MIN_OVERLAP;

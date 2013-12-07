@@ -18,7 +18,7 @@
 	TODO:
 	- multithread?
 	- check file format fastq
-	- merging statisics collection
+	- merging statisics collection (%mapped, histogram, error rate, )
 	- output files for unpaired (done)
 	- read and write to gzip
 	- stagger mode
@@ -44,6 +44,11 @@
 #include "merge_brute.h"
 #endif
 
+#ifndef MERGE_STAGGER_H
+#define MERGE_STAGGER_H
+#include "merge_stagger.h"
+#endif
+
 void reverse(char*, size_t);
 void reverse_complement(char*, size_t);
 char complement(char);
@@ -57,6 +62,7 @@ int main(int argc, char **argv){
         param.KMER = 5;
         param.ERR_RATIO = 0.25;
         param.MIN_OVERLAP = 10;
+	param.MAX_OVERLAP = 1000000000;
 	param.Q_OFFSET = 33;
 	param.PVAL = 0.05;
 	param.CHISQUARE = 3.84;
@@ -68,8 +74,8 @@ int main(int argc, char **argv){
 	int c, err = 0; 
 	int mflag=0, pflag=0, fflag=0; 
 	char *sname = "default_sname", *fname; 
-	static char usage[] = "usage: %s [-S stagger mode] [-M kmer mode] [-x max error ratio] [-L minimum overlap] read1 read2 output_prefix\n"; 
-	while ((c = getopt(argc, argv, "SMk:x:L:q:")) != -1) 
+	static char usage[] = "usage: %s [-S stagger mode] [-K kmer mode] [-x max error ratio] [-M maximum overlap] [-L minimum overlap] read1 read2 output_prefix\n"; 
+	while ((c = getopt(argc, argv, "SM:Kx:L:q:")) != -1) 
 		switch (c) { 
 			case 'S':
 				param.STAGGERMODE = 1;
@@ -211,29 +217,32 @@ int main(int argc, char **argv){
 		pair.read2_len = strlen(seq2);
 	
 		found =0;
-		
-		if(runmode == 1){	
-			found = merge_kmer(&pair, &param);
-		}else{
-			found = merge_brute(&pair, &param);		
-		}
 
-		if(found == 0){
-			if(param.STAGGERMODE == 1){
-			
+		if(pair.read1_len != 0 && pair.read2_len != 0){
+
+			if(runmode == 1){	
+				found = merge_kmer(&pair, &param);
+			}else{
+				found = merge_brute(&pair, &param);		
 			}
 
 			if(found == 0){
-                		fprintf(param.unmerged1File,"%s\n",pair.header1);
-                		fprintf(param.unmerged1File,"%s\n", pair.read1);
-                		fprintf(param.unmerged1File,"+\n");
-                		fprintf(param.unmerged1File,"%s\n", pair.qual1);
+				if(param.STAGGERMODE == 1){
+					found = merge_stagger(&pair,&param);		
+				}
 
-                                fprintf(param.unmerged2File,"%s\n",pair.header2);
-                                fprintf(param.unmerged2File,"%s\n", pair.read2);
-                                fprintf(param.unmerged2File,"+\n");
-                                fprintf(param.unmerged2File,"%s\n", pair.qual2);
+				if(found == 0){
+                			fprintf(param.unmerged1File,"%s\n",pair.header1);
+	                		fprintf(param.unmerged1File,"%s\n", pair.read1);
+        	        		fprintf(param.unmerged1File,"+\n");
+                			fprintf(param.unmerged1File,"%s\n", pair.qual1);
 
+                        	        fprintf(param.unmerged2File,"%s\n",pair.header2);
+                                	fprintf(param.unmerged2File,"%s\n", pair.read2);
+                  		        fprintf(param.unmerged2File,"+\n");
+                                	fprintf(param.unmerged2File,"%s\n", pair.qual2);
+
+				}
 			}
 		}
 	}
