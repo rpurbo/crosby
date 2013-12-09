@@ -16,13 +16,17 @@
  * 	   examines all possible extension within the 10bps and compares it against a dynamic k-mer database.
  *
 	TODO:
-	- multithread?
-	- check file format fastq
-	- merging statisics collection (%mapped, histogram, error rate, )
-	- output files for unpaired (done)
+	- multithread?/mpi?
+	- check file format fastq (done)
+	- merging statisics collet
+	- output files for unpaired reads (done)
 	- read and write to gzip
 	- stagger mode
+	- check if files are accessible
 
+	BUG:
+	- crashed if R2 is longer than R2
+	- missing output per X reads, might be flushing problem
 
  * CROSBY source code can be downloaded from https://github.com/rpurbo/crosby
  *
@@ -108,7 +112,7 @@ int main(int argc, char **argv){
 	}
 
 	if(param.ERR_RATIO < 0 || param.ERR_RATIO > 1){
-		fprintf(stderr, "\nError ratio must be between 0 and 1\n\n");
+		fprintf(stderr, "\n[ERROR] Error ratio must be between 0 and 1\n\n");
 		fprintf(stderr, usage, argv[0]);
                 exit(1);
 	}
@@ -163,6 +167,8 @@ int main(int argc, char **argv){
 	
 	char * line1 = NULL;
 	char * line2 = NULL;
+	char * plus1 = NULL;
+	char * plus2 = NULL;
 	size_t len1,len2,found = 0;
 	ssize_t num1,num2;
 	
@@ -176,6 +182,12 @@ int main(int argc, char **argv){
 		strncpy(header2, line2, num2);
 		header1[num1-1] = '\0';
 		header2[num2-1] = '\0';
+	
+		if(header1[0] != '@' || header2[0] != '@'){
+			fprintf(stderr,"[ERROR] Reads file is not in a proper fastq format!\n");
+			fprintf(stderr,"[ERROR] Crosby is exiting...\n");
+			exit(1);
+		}	
 		
 		num1 = getline(&line1, &len1, fq1);
 		num2 = getline(&line2, &len2, fq2);
@@ -192,6 +204,21 @@ int main(int argc, char **argv){
 		num1 = getline(&line1, &len1, fq1);
 		num2 = getline(&line2, &len2, fq2);
 		
+                char plus1[num1];
+                char plus2[num2];
+                strncpy(plus1, line1, num1);
+                strncpy(plus2, line2, num2);
+                plus1[num1-1] = '\0';
+                plus2[num2-1] = '\0';
+
+                if(plus1[0] != '+' || plus2[0] != '+'){
+                        fprintf(stderr,"[ERROR] Reads file is not in a proper fastq format!\n");
+                        fprintf(stderr,"[ERROR] Crosby is exiting...\n");
+
+			exit(1);
+                }
+
+
 		num1 = getline(&line1, &len1, fq1);
 		num2 = getline(&line2, &len2, fq2);
 		
