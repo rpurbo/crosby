@@ -26,7 +26,10 @@
 
 	BUG:
 	- crashed if R2 is longer than R2
-	- missing output per X reads, might be flushing problem
+	- wrong alignment for staggered reads, error rate?
+	- k-mer version does not work after restructuring
+	- missing output per X reads, might be flushing problem (fixed)
+	- weird file name (fixed)
 
  * CROSBY source code can be downloaded from https://github.com/rpurbo/crosby
  *
@@ -87,7 +90,7 @@ int main(int argc, char **argv){
 			case 'x': 
 				param.ERR_RATIO = atof(optarg);
 				break; 
-                      	case 'M':
+                      	case 'K':
                                 runmode = 1;
                                 break;
 			case 'L': 
@@ -125,26 +128,32 @@ int main(int argc, char **argv){
         char input2[len+1];
         strncpy(input2,argv[optind+1],len);	
 	input2[len] = '\0';
+	
 	len = strlen(argv[optind+2]);
-
-	char prefix[] = ".composite.fastq"; 
+	char prefix[len];
+	strncpy(prefix, argv[optind+2],len);
+	
+	char comp[] = ".composite.fastq"; 
 	char unmerged1[] = ".unmerged.1.fastq";
 	char unmerged2[] = ".unmerged.2.fastq";
 
-        char output[len+strlen(prefix)+1];
-        strncpy(output,argv[optind+2],len);
-	strncat(output,prefix,strlen(prefix));
-        output[len+strlen(prefix)+1] = '\0';
+        char output[len+strlen(comp)+1];
+	memset(output, '\0', strlen(output));
+        strncpy(output,prefix,strlen(prefix));
+	strncat(output,comp,strlen(comp));
+        output[strlen(output)+1] = '\0';
 
-        char output_un1[len+strlen(unmerged1)+1];
-        strncpy(output_un1,argv[optind+2],len);
+	char output_un1[len+strlen(unmerged1)+1];
+	memset(output_un1, '\0', strlen(output_un1));
+        strncpy(output_un1,prefix,len);
         strncat(output_un1,unmerged1,strlen(unmerged1));
-        output_un1[len+strlen(unmerged1)+1] = '\0';
+        output_un1[strlen(output_un1)+1] = '\0';
 
         char output_un2[len+strlen(unmerged2)+1];
-        strncpy(output_un2,argv[optind+2],len);
+	memset(output_un2, '\0', strlen(output_un2));	
+        strncpy(output_un2,prefix,len);
         strncat(output_un2,unmerged2,strlen(unmerged2));
-        output_un2[len+strlen(unmerged2)+1] = '\0';
+        output_un2[strlen(output_un2)+1] = '\0';
 
 
 	// OPENING THE FILES

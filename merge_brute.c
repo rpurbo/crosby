@@ -3,6 +3,11 @@
 #include "merge_brute.h"
 #endif
 
+#ifndef RESCONF_H
+#define RESCONF_H
+#include "resconf.h"
+#endif
+
 #include <math.h>
 
 int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
@@ -17,11 +22,8 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	obs[2] = 0;
 	obs[3] = 0;
 
-	//printf("============================================\n");
-	//printf("r1:%s\n",pair->read1 );
-        //printf("r2:%s\n",pair->read2 );
-	
-	/*
+	/* PROTOTYPE FOR VECTORIZATON
+		
 	char *reads1_substring[pair->read1_len - param->MIN_OVERLAP];
 	char *reads2_substring[pair->read2_len - param->MIN_OVERLAP];
 
@@ -43,16 +45,11 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 	}
 	*/
 
-	//printf("=== MERGE BRUTE\n");
-	//printf("=COUNT OBS\n");
 	// COUNT BASES OBSERVATION
 	for (i=0;i<pair->read1_len;i++){
 		obs[base2code[pair->read1[i]]]++;
 	}
 
-	//printf("=FIND ALIGNMENT\n");
-	//printf("R1 len: %d\n",pair->read1_len);
-	//printf("R2 len: %d\n",pair->read2_len);
 
 	// == NAIVE BRUTE FORCE ==
 	for(limit = 0;limit < pair->read1_len - param->MIN_OVERLAP;limit++){
@@ -60,10 +57,7 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 		mis =0;
     		c = 0;
 
-		//printf("lim: %d\n",limit);
-
     		for (i=0;i<pair->read2_len - limit;i++){
-			//printf("i: %d\n",i);    
 
 			if(pair->read1[limit+i] == pair->read2[i]){
 				match++;
@@ -72,7 +66,6 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 			}	
 
         		if(mis > (param->ERR_RATIO * (pair->read1_len - limit))){
-            			//i = pair->read1_len;
             			exit;
         		}
         
@@ -84,13 +77,66 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
         		start = limit;
     		}
 	}
-	// == NAIVE BRUTE FORCE ==
 
-	//printf("=MERGE READS\n");
+
+	//printf("R1: %s\n",pair->read1);
+	//printf("R2: %s\n",pair->read2);	
+
         // MERGE THE READS
         if(maxscore != 0){
+		int total_len = pair->read1_len + pair->read2_len;
+		
+		char merge_str[total_len+1] ;
+		char merge_qual[total_len+1];
+		memset(merge_str, '\0', sizeof( merge_str ));		
+		memset(merge_qual, '\0', sizeof( merge_qual ));
+
+		
+		// COPY R1 TO MERGE STRING
+		strncpy(merge_str, pair->read1,pair->read1_len);
+		strncpy(merge_qual, pair->qual1,pair->read1_len);
+		
+
+		// MERGE R2 TO MERGE STRING
+		for (i=0;i<pair->read2_len;i++){
+			c = i + start;
+			//printf("%d, %c, %c\n",i,merge_str[c], pair->read2[i]);
+
+			if(merge_str[c] == '\0'){
+
+				merge_str[c] = pair->read2[i];	
+				merge_qual[c] = pair->qual2[i];
+
+			}else{
+
+				if(merge_str[c] == pair->read2[i]){	
+				
+					// IF BASES ARE EQUAL, CHOOSE THE LOWEST QUAL SCORE
+                                	q1 = merge_qual[c] - param->Q_OFFSET;
+                                	q2 = pair->qual2[i] - param->Q_OFFSET;
+                        
+                                	if(q1 > q2 ){
+                                        	merge_qual[c] = pair->qual2[i];
+                                	}
+
+
+				}else{
+                                	// IF BASES ARE DIFFERENT, DO STATISTICAL TEST
+                                	struct RESULT res;
+                                	res = score_conflict(pair, param, obs, c, start);
+                                	merge_str[c] = res.base;
+                                	merge_qual[c] = res.qual;
+
+
+				}
+
+			}
+		}
+		
+
+		/*	
                 int merge_len = pair->read1_len + pair->read2_len - (pair->read1_len - start);
-                char merge_str[merge_len+1];
+                char merge_str[merge_len+1] ;
                 char merge_qual[merge_len+1];
                 memset(merge_str,0,sizeof(char) * (merge_len+1));
                 memset(merge_qual,0,sizeof(char) * (merge_len+1));
@@ -102,18 +148,10 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
                 }
 
                 // MIDDLE PART
-		//printf("R1: %s\n", pair->read1);
-		//printf("R1: %d\n", pair->read1_len);
-		//printf("R2: %s\n", pair->read2);
-		//printf("R2: %d\n", pair->read2_len);
 
                 for (i=start;i<pair->read1_len;i++){
-			//printf("|%d",i);
-			// problem if read 1 is longer than read 2, pair->read2[i-start] is null;
 
                         if(pair->read1[i] == pair->read2[i-start]){
-				//printf("merging R1 base %d and R2 base %d \n",i, (i-start));
-				//printf("merging %c and %c \n",pair->read1[i], pair->read2[i-start]);
 
                                 merge_str[i] = pair->read1[i];
 
@@ -128,92 +166,31 @@ int merge_brute(struct read_pairs *pair, struct PARAMS *param ){
 				}
 
                         }else{
+				// IF BASES ARE DIFFERENT, DO STATISTICAL TEST
+				struct RESULT res;
+				res = score_conflict(pair, param, obs, i, start);
+				merge_str[i] = res.base;
+				merge_qual[i] = res.qual;
+                        
+			}
 
-				q1 = pair->qual1[i] - param->Q_OFFSET;
-				q2 = pair->qual2[i-start] - param->Q_OFFSET;
-
-				pq1 = 1- (powf(10, ((float)q1/-10)));				
-				pq2 = 1- (powf(10,((float)q2/-10)));	
-				
-
-	                        float PA = ((float)obs[base2code[pair->read1[i]]]/pair->read1_len);
-                                float PC = ((float)obs[base2code[pair->read2[i-start]]]/pair->read1_len);
-
-				// POSTERIOR PROBABILITY OF BASE 1
-				Ppq1 = (float)(pq1 * PA) / 0.25; 						
-				Ppq1 *= ((float)((1-pq2)/3) * PA) / 0.25;
-				
-				// POSTERIOR PROBABILITY OF BASE 2
-                                Ppq2 = (float)(pq2 * PC) / 0.25;
-                                Ppq2 *= ((float)((1-pq1)/3) * PC) / 0.25;
-
-				// CALCULATE CHI-SQUARE TEST
-				if(Ppq1 > Ppq2){
-					chi = ((Ppq1 - Ppq2) * (Ppq1 - Ppq2)) / Ppq2;			
-					if(chi >= param->CHISQUARE){ //p-value 0.05 
-						// different enough
-						merge_str[i] = pair->read1[i];
-						merge_qual[i] = pair->qual1[i];
-					}else{
-						merge_str[i] = 'N';
-						merge_qual[i] = '#';
-					}
-				}else{
-					chi = ((Ppq2 - Ppq1) * (Ppq2 - Ppq1)) / Ppq1;
-                                       if(chi >= param->CHISQUARE){ //p-value 0.05
-                                                // different enough
-                                                merge_str[i] = pair->read2[i-start];
-                                                merge_qual[i] = pair->qual2[i-start];
-                                        }else{
-                                                merge_str[i] = 'N';
-                                                merge_qual[i] = '#';
-                                        }
-				}
-
-				/* DEBUG	
-				printf("Base1: %c\n", pair->read1[i]);
-				printf("Base2: %c\n", pair->read2[i-start]);
-
-				
-				printf("Q1: %c - %d - %f\n", pair->qual1[i], q1, pq1);
-                                printf("Q2: %c - %d - %f\n", pair->qual2[i-start],q2,pq2);
-				
-				printf("obs1: %d\n",obs[base2code[pair->read1[i]]]);
-				printf("obs2: %d\n",obs[base2code[pair->read2[i-start]]]);
-				printf("P(A): %f\n", PA);
-				printf("P(A)2: %f\n", PC);		
-
-				printf("PPq1: %f\n", Ppq1);
-                                printf("PPq2: %f\n", Ppq2);
-
-				printf("chi square: %f\n",chi);
-	
-				printf("merge str: %c\n",merge_str[i]);
-				printf("merge qual: %c\n",merge_qual[i]);			
-				
-				printf("==============================\n");
-				*/
-                        }
-
-			//printf("&%d",i);
                 }
-		//printf("\n");
 		
                 // LAST PART
                 for(i= pair->read1_len ;i <= merge_len;i++){
-			//printf("%d ",i);
                         merge_str[i] = pair->read2[i-start];
                         merge_qual[i] = pair->qual2[i-start];
 			
                 }
                 merge_str[merge_len+1] = '\0';
                 merge_qual[merge_len+1] = '\0';
+		*/
+		
 
-		//printf("=WRITE OUTPUT\n");
 		// PRINT TO FILE
                 fprintf(param->outFile,"%s\n",pair->header1);
                 fprintf(param->outFile,"%s\n", merge_str);
-                fprintf(param->outFile,"+\n", merge_str);
+                fprintf(param->outFile,"+\n");
                 fprintf(param->outFile,"%s\n", merge_qual);
 
 		return 1;
